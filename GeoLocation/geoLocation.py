@@ -2,6 +2,8 @@ import math
 from typing import List, Tuple
 from flask import Flask, request, jsonify
 import pytest
+import tracemalloc
+import cProfile
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371  # Earth's radius in kilometers
@@ -41,6 +43,19 @@ def match_points_api():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
+# Performance Profiling
+
+def profile_memory():
+    """Analyze memory usage."""
+    tracemalloc.start()
+    snapshot = tracemalloc.take_snapshot()
+    for stat in snapshot.statistics("lineno")[:10]:
+        print(stat)
+
+def profile_cpu():
+    """Profile CPU usage."""
+    cProfile.run('match_closest_points([(40.7128, -74.0060)], [(41.8781, -87.6298)])')
+
 # Unit Tests
 def test_haversine_distance():
     nyc = (40.7128, -74.0060)
@@ -75,4 +90,8 @@ def test_empty_array():
         match_closest_points(array1, array2)
 
 if __name__ == "__main__":
+    print("Profiling memory usage...")
+    profile_memory()
+    print("Profiling CPU usage...")
+    profile_cpu()
     app.run(debug=True)
