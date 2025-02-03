@@ -1,9 +1,13 @@
 import math
+import logging
 from typing import List, Tuple
 from flask import Flask, request, jsonify
 import pytest
 import tracemalloc
 import cProfile
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     R = 6371  # Earth's radius in kilometers
@@ -16,15 +20,19 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     dlon = lon2 - lon1
     a = math.sin(dlat / 2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return R * c
+    distance = R * c
+    logging.info(f'Calculated distance: {distance:.2f} km')
+    return distance
 
 def match_closest_points(array1: List[Tuple[float, float]], array2: List[Tuple[float, float]]) -> List[Tuple[Tuple[float, float], Tuple[float, float]]]:
     if not array2:
+        logging.error("Second array cannot be empty")
         raise ValueError("Second array cannot be empty")
     
     matched_points = []
     for point1 in array1:
         closest_point = min(array2, key=lambda point2: haversine_distance(point1[0], point1[1], point2[0], point2[1]))
+        logging.info(f'Matched {point1} to {closest_point}')
         matched_points.append((point1, closest_point))
     return matched_points
 
@@ -47,13 +55,15 @@ def match_points_api():
 
 def profile_memory():
     """Analyze memory usage."""
+    logging.info("Starting memory profiling...")
     tracemalloc.start()
     snapshot = tracemalloc.take_snapshot()
     for stat in snapshot.statistics("lineno")[:10]:
-        print(stat)
+        logging.info(stat)
 
 def profile_cpu():
     """Profile CPU usage."""
+    logging.info("Starting CPU profiling...")
     cProfile.run('match_closest_points([(40.7128, -74.0060)], [(41.8781, -87.6298)])')
 
 # Unit Tests
@@ -90,8 +100,9 @@ def test_empty_array():
         match_closest_points(array1, array2)
 
 if __name__ == "__main__":
-    print("Profiling memory usage...")
+    logging.info("Profiling memory usage...")
     profile_memory()
-    print("Profiling CPU usage...")
+    logging.info("Profiling CPU usage...")
     profile_cpu()
+    logging.info("Starting Flask application...")
     app.run(debug=True)
